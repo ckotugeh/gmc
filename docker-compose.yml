@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-gmc}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PORT: ${PORT:-8080}
+      JWT_SECRET: ${JWT_SECRET:-changeme}
+      DB_HOST: postgres
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-gmc}
+      DB_PORT: 5432
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      MIGRATE_ON_STARTUP: ${MIGRATE_ON_STARTUP:-true}
+      # For single-domain behind a reverse proxy, you can leave this empty.
+      # For separate-domain deployments, set CORS_ORIGINS to the frontend origin.
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      WEBSOCKET_ALLOWED_ORIGINS: ${WEBSOCKET_ALLOWED_ORIGINS:-}
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      # Vite build-time env is embedded during the image build.
+      # If you use a reverse proxy, keep default '/api'.
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+

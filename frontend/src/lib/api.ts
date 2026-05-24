@@ -1,8 +1,11 @@
 import axios from 'axios'
 
+const apiBaseUrl = (import.meta as any).env?.VITE_API_BASE_URL ?? '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseUrl,
 })
+
 
 // Attach JWT token to every request if present
 api.interceptors.request.use((config) => {
