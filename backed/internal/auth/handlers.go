@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 
 	"doctor-platform/internal/database"
@@ -44,6 +45,15 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
 	}
+	claims, err := utils.ValidateJWT(token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	fmt.Printf("Login JWT Claims: %+v\n", claims)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
@@ -89,6 +99,16 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+	// Debug: validate and print the token claims
+	claims, err := utils.ValidateJWT(token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	fmt.Printf("Generated JWT Claims: %+v\n", claims)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
