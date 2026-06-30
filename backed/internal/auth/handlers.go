@@ -11,12 +11,12 @@ import (
 
 type RegisterInput struct {
 	FullName string `json:"full_name" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
 }
 
 type LoginInput struct {
-	Email    string `json:"email" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -39,7 +39,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user.Email)
+	token, err := utils.GenerateJWT(user.ID, user.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -59,7 +59,13 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	hashedPassword, _ := utils.HashPassword(input.Password)
+	hashedPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Faild to hash password",
+		})
+		return
+	}
 
 	user := User{
 		FullName:           input.FullName,
@@ -69,9 +75,20 @@ func Register(c *gin.Context) {
 		VerificationStatus: "pending",
 	}
 
-	database.DB.Create(&user)
+	if err := database.DB.Create(&user).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Email already exists",
+		})
+		return
+	}
 
-	token, _ := utils.GenerateJWT(user.Email)
+	token, err := utils.GenerateJWT(user.ID, user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to generate token",
+		})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "User registered successfully",
