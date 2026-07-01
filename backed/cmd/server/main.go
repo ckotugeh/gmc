@@ -29,6 +29,7 @@ func main() {
 		api.POST("/auth/login", auth.Login)
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware())
+
 		protected.GET("/me", func(c *gin.Context) {
 			userID := c.GetUint("userID")
 			email := c.GetString("email")
@@ -38,6 +39,7 @@ func main() {
 				"email":   email,
 			})
 		})
+		profile.RegisterRoutes(protected)
 	}
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)

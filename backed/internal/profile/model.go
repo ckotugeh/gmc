@@ -7,7 +7,7 @@ type Profile struct {
 
 	UserID uint `gorm:"uniqueIndex;not null"`
 
-	FullName string `gorm:"size:100;not null"`
+	//FullName string `gorm:"size:100;not null"`
 
 	Specialization string `gorm:"size:100;not null"`
 	Hospital       string `gorm:"size:150"`
