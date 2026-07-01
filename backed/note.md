@@ -54,3 +54,15 @@ Update their profile
 
 After that, we'll build Communities.
   </pre>
+  ## repository
+  <pre>
+    Repository responsibilities
+
+At this layer, keep it focused on CRUD operations:
+
+Create() → insert a profile.
+GetByUserID() → fetch the logged-in doctor's profile.
+GetByID() → fetch a public profile by ID.
+Update() → save profile changes.
+Delete() → remove a profile if needed.
+  </pre>
