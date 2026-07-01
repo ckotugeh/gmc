@@ -38,3 +38,19 @@ curl -X POST http://localhost:8080/api/auth/register \
     curl http://localhost:8080/api/me \
     -H "Authorization: Bearer YOUR_TOKEN" //Valid token
   </pre>
+  ## Branck profile
+
+  <pre>
+    Sprint Goal
+
+By the end of this branch, a doctor should be able to:
+
+Register
+Login
+Authenticate with JWT
+Create a professional profile
+View their profile
+Update their profile
+
+After that, we'll build Communities.
+  </pre>

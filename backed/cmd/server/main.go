@@ -6,6 +6,7 @@ import (
 	"doctor-platform/internal/auth"
 	"doctor-platform/internal/database"
 	"doctor-platform/internal/middleware"
+	"doctor-platform/internal/profile"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -18,7 +19,7 @@ func main() {
 
 	database.ConnectDB()
 
-	database.DB.AutoMigrate(&auth.User{})
+	database.DB.AutoMigrate(&auth.User{}, &profile.Profile{})
 
 	router := gin.Default()
 
