@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"doctor-platform/internal/auth"
+	"doctor-platform/internal/communities"
 	"doctor-platform/internal/database"
 	"doctor-platform/internal/middleware"
 	"doctor-platform/internal/profile"
@@ -19,30 +20,45 @@ func main() {
 
 	database.ConnectDB()
 
-	database.DB.AutoMigrate(&auth.User{}, &profile.Profile{})
+	database.DB.AutoMigrate(
+		&auth.User{},
+		&profile.Profile{},
+		&communities.Community{},
+	)
 
 	router := gin.Default()
 
+	// Communities module
+	repo := communities.NewRepository()
+	service := communities.NewService(repo)
+	handler := communities.NewHandler(service)
+
 	api := router.Group("/api")
-	{
-		api.POST("/auth/register", auth.Register)
-		api.POST("/auth/login", auth.Login)
-		protected := api.Group("/")
-		protected.Use(middleware.AuthMiddleware())
 
-		protected.GET("/me", func(c *gin.Context) {
-			userID := c.GetUint("userID")
-			email := c.GetString("email")
+	// Public routes
+	api.POST("/auth/register", auth.Register)
+	api.POST("/auth/login", auth.Login)
 
-			c.JSON(200, gin.H{
-				"user_id": userID,
-				"email":   email,
-			})
+	// Protected routes
+	protected := api.Group("/")
+	protected.Use(middleware.AuthMiddleware())
+
+	protected.GET("/me", func(c *gin.Context) {
+		userID := c.GetUint("userID")
+		email := c.GetString("email")
+
+		c.JSON(200, gin.H{
+			"user_id": userID,
+			"email":   email,
 		})
-		profile.RegisterRoutes(protected)
-	}
+	})
+
+	profile.RegisterRoutes(protected)
+	communities.RegisterRoutes(protected, handler)
+
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
 	}
+
 	router.Run(":8080")
 }
