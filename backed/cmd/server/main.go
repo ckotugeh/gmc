@@ -7,6 +7,7 @@ import (
 	"doctor-platform/internal/communities"
 	"doctor-platform/internal/database"
 	"doctor-platform/internal/middleware"
+	"doctor-platform/internal/posts"
 	"doctor-platform/internal/profile"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func main() {
 
 	// Protected routes
 	protected := api.Group("/")
-	protected.Use(middleware.AuthMiddleware())
+	protected.Use(middleware.JWTAuthMiddleware())
 
 	protected.GET("/me", func(c *gin.Context) {
 		userID := c.GetUint("userID")
@@ -55,6 +56,7 @@ func main() {
 
 	profile.RegisterRoutes(protected)
 	communities.RegisterRoutes(protected, handler)
+	posts.RegisterRoutes(router)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
