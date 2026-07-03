@@ -7,22 +7,22 @@ type Profile struct {
 
 	UserID uint `gorm:"uniqueIndex;not null"`
 
-	//FullName string `gorm:"size:100;not null"`
-
 	Specialization string `gorm:"size:100;not null"`
 	Hospital       string `gorm:"size:150"`
 
 	Country string `gorm:"size:100"`
 	City    string `gorm:"size:100"`
 
-	YearsExperience int
+	YearsExperience int `gorm:"check:years_experience >= 0"`
 
-	LicenseNumber string `gorm:"size:100"`
-	Education     string `gorm:"size:255"`
+	LicenseNumber string `gorm:"size:100;uniqueIndex"`
 
+	Education string `gorm:"size:255"`
 	Languages string `gorm:"size:255"`
 
 	Bio string `gorm:"type:text"`
 
 	ProfileImageURL string `gorm:"size:255"`
+
+	LicenseVerified bool `gorm:"default:false"`
 }

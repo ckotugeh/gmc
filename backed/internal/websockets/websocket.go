@@ -1,12 +1,13 @@
-package websocket
+package websockets
 
 import (
+	"doctor-platform/internal/websockets"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-var upgrader = websocket.Upgrader{
+var upgrader = websockets.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
@@ -28,6 +29,6 @@ func HandleWebSocket(c *gin.Context) {
 			break
 		}
 
-		conn.WriteMessage(websocket.TextMessage, msg)
+		conn.WriteMessage(websockets.TextMessage, msg)
 	}
 }
