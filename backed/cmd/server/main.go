@@ -10,6 +10,7 @@ import (
 	"doctor-platform/internal/middleware"
 	"doctor-platform/internal/posts"
 	"doctor-platform/internal/profile"
+	"doctor-platform/internal/reactions"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -28,6 +29,7 @@ func main() {
 		&communities.Community{},
 		&posts.Post{},
 		&comments.Comment{},
+		&reactions.Reaction{},
 	)
 
 	router := gin.Default()
@@ -36,6 +38,11 @@ func main() {
 	repo := communities.NewRepository()
 	service := communities.NewService(repo)
 	handler := communities.NewHandler(service)
+
+	//reactions
+	reactionRepo := reactions.NewRepository()
+	reactionService := reactions.NewService(reactionRepo)
+	reactionHandler := reactions.NewHandler(reactionService)
 
 	api := router.Group("/api")
 
@@ -61,6 +68,7 @@ func main() {
 	communities.RegisterRoutes(protected, handler)
 	posts.RegisterRoutes(router)
 	comments.RegisterRoutes(router)
+	reactions.RegisterRoutes(api, reactionHandler)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
