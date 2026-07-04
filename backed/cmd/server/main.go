@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"doctor-platform/internal/auth"
+	"doctor-platform/internal/comments"
 	"doctor-platform/internal/communities"
 	"doctor-platform/internal/database"
 	"doctor-platform/internal/middleware"
@@ -25,6 +26,8 @@ func main() {
 		&auth.User{},
 		&profile.Profile{},
 		&communities.Community{},
+		&posts.Post{},
+		&comments.Comment{},
 	)
 
 	router := gin.Default()
@@ -57,6 +60,7 @@ func main() {
 	profile.RegisterRoutes(protected)
 	communities.RegisterRoutes(protected, handler)
 	posts.RegisterRoutes(router)
+	comments.RegisterRoutes(router)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)

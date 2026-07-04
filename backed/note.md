@@ -66,3 +66,17 @@ GetByID() → fetch a public profile by ID.
 Update() → save profile changes.
 Delete() → remove a profile if needed.
   </pre>
+
+  ## Create Community
+  ```
+curl -X POST http://localhost:8080/api/communities \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"General Medicine",
+    "description":"Community for physicians and medical professionals",
+    "category":"Medicine",
+    "is_private":false
+  }'
+
+  ```
