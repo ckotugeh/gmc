@@ -7,6 +7,7 @@ import (
 	"doctor-platform/internal/comments"
 	"doctor-platform/internal/communities"
 	"doctor-platform/internal/database"
+	"doctor-platform/internal/messages"
 	"doctor-platform/internal/middleware"
 	"doctor-platform/internal/posts"
 	"doctor-platform/internal/profile"
@@ -30,6 +31,7 @@ func main() {
 		&posts.Post{},
 		&comments.Comment{},
 		&reactions.Reaction{},
+		&messages.Message{},
 	)
 
 	router := gin.Default()
@@ -43,6 +45,11 @@ func main() {
 	reactionRepo := reactions.NewRepository()
 	reactionService := reactions.NewService(reactionRepo)
 	reactionHandler := reactions.NewHandler(reactionService)
+
+	//messaes
+	messageRepo := messages.NewRepository()
+	messageService := messages.NewService(messageRepo)
+	messageHandler := messages.NewHandler(messageService)
 
 	api := router.Group("/api")
 
@@ -69,6 +76,7 @@ func main() {
 	posts.RegisterRoutes(router)
 	comments.RegisterRoutes(router)
 	reactions.RegisterRoutes(api, reactionHandler)
+	messages.RegisterRoutes(api, messageHandler)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
