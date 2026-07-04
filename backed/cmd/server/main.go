@@ -9,6 +9,7 @@ import (
 	"doctor-platform/internal/database"
 	"doctor-platform/internal/messages"
 	"doctor-platform/internal/middleware"
+	"doctor-platform/internal/notifications"
 	"doctor-platform/internal/posts"
 	"doctor-platform/internal/profile"
 	"doctor-platform/internal/reactions"
@@ -32,6 +33,7 @@ func main() {
 		&comments.Comment{},
 		&reactions.Reaction{},
 		&messages.Message{},
+		&notifications.Notification{},
 	)
 
 	router := gin.Default()
@@ -50,6 +52,11 @@ func main() {
 	messageRepo := messages.NewRepository()
 	messageService := messages.NewService(messageRepo)
 	messageHandler := messages.NewHandler(messageService)
+
+	//notification
+	notificationRepo := notifications.NewRepository()
+	notificationService := notifications.NewService(notificationRepo)
+	notificationHandler := notifications.NewHandler(notificationService)
 
 	api := router.Group("/api")
 
@@ -77,6 +84,7 @@ func main() {
 	comments.RegisterRoutes(router)
 	reactions.RegisterRoutes(api, reactionHandler)
 	messages.RegisterRoutes(api, messageHandler)
+	notifications.RegisterRoutes(api, notificationHandler)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
