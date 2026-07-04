@@ -17,6 +17,7 @@ import (
 	"doctor-platform/internal/presence"
 	"doctor-platform/internal/profile"
 	"doctor-platform/internal/reactions"
+	"doctor-platform/internal/uploads"
 	"doctor-platform/internal/websockets"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,7 @@ func main() {
 		&appointments.Appointment{},
 		&medicalrecords.MedicalRecord{},
 		&hospitals.Hospital{},
+		&uploads.Upload{},
 	)
 
 	router := gin.Default()
@@ -101,6 +103,7 @@ func main() {
 	appointments.RegisterRoutes(api, database.DB)
 	medicalrecords.RegisterRoutes(api, database.DB)
 	hospitals.RegisterRoutes(api, database.DB)
+	uploads.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
