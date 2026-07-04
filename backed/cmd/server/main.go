@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"doctor-platform/internal/appointments"
 	"doctor-platform/internal/auth"
 	"doctor-platform/internal/comments"
 	"doctor-platform/internal/communities"
@@ -36,6 +37,7 @@ func main() {
 		&reactions.Reaction{},
 		&messages.Message{},
 		&notifications.Notification{},
+		&appointments.Appointment{},
 	)
 
 	router := gin.Default()
@@ -92,6 +94,7 @@ func main() {
 	notifications.RegisterRoutes(api, notificationHandler)
 	websockets.RegisterRoutes(api, hub)
 	presence.RegisterRoutes(api, database.DB)
+	appointments.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
