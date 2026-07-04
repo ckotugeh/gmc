@@ -11,6 +11,7 @@ import (
 	"doctor-platform/internal/middleware"
 	"doctor-platform/internal/notifications"
 	"doctor-platform/internal/posts"
+	"doctor-platform/internal/presence"
 	"doctor-platform/internal/profile"
 	"doctor-platform/internal/reactions"
 	"doctor-platform/internal/websockets"
@@ -90,6 +91,7 @@ func main() {
 	messages.RegisterRoutes(api, messageHandler)
 	notifications.RegisterRoutes(api, notificationHandler)
 	websockets.RegisterRoutes(api, hub)
+	presence.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
