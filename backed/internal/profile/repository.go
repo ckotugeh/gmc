@@ -10,9 +10,26 @@ type Repository interface {
 	GetByID(id uint) (*Profile, error)
 	Update(profile *Profile) error
 	Delete(id uint) error
+
+	ExistsByUserID(userID uint) (bool, error)
 }
 
 type repository struct{}
+
+func (r *repository) ExistsByUserID(userID uint) (bool, error) {
+	var count int64
+
+	err := database.DB.
+		Model(&Profile{}).
+		Where("user_id = ?", userID).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
 
 func NewRepository() Repository {
 	return &repository{}
