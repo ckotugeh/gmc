@@ -13,6 +13,7 @@ import (
 	"doctor-platform/internal/posts"
 	"doctor-platform/internal/profile"
 	"doctor-platform/internal/reactions"
+	"doctor-platform/internal/websockets"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -58,6 +59,9 @@ func main() {
 	notificationService := notifications.NewService(notificationRepo)
 	notificationHandler := notifications.NewHandler(notificationService)
 
+	hub := websockets.NewHub()
+	go hub.Run()
+
 	api := router.Group("/api")
 
 	// Public routes
@@ -85,6 +89,7 @@ func main() {
 	reactions.RegisterRoutes(api, reactionHandler)
 	messages.RegisterRoutes(api, messageHandler)
 	notifications.RegisterRoutes(api, notificationHandler)
+	websockets.RegisterRoutes(api, hub)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
