@@ -17,6 +17,7 @@ import (
 	"doctor-platform/internal/presence"
 	"doctor-platform/internal/profile"
 	"doctor-platform/internal/reactions"
+	"doctor-platform/internal/search"
 	"doctor-platform/internal/uploads"
 	"doctor-platform/internal/video_consultations"
 	"doctor-platform/internal/websockets"
@@ -46,6 +47,8 @@ func main() {
 		&hospitals.Hospital{},
 		&uploads.Upload{},
 		&video_consultations.VideoConsultation{},
+		&presence.Presence{},
+		&search.Search{},
 	)
 
 	router := gin.Default()
@@ -107,6 +110,7 @@ func main() {
 	hospitals.RegisterRoutes(api, database.DB)
 	uploads.RegisterRoutes(api, database.DB)
 	video_consultations.RegisterRoutes(api, database.DB)
+	search.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
