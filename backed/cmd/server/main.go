@@ -6,6 +6,7 @@ import (
 	"doctor-platform/internal/admin"
 	"doctor-platform/internal/appointments"
 	"doctor-platform/internal/auth"
+	"doctor-platform/internal/availability"
 	"doctor-platform/internal/comments"
 	"doctor-platform/internal/communities"
 	"doctor-platform/internal/database"
@@ -55,6 +56,7 @@ func main() {
 		&admin.Admin{},
 		&payments.Payment{},
 		&doctor_schedules.DoctorSchedule{},
+		&availability.Availability{},
 	)
 
 	router := gin.Default()
@@ -120,6 +122,7 @@ func main() {
 	admin.RegisterRoutes(api, database.DB)
 	payments.RegisterRoutes(api, database.DB)
 	doctor_schedules.RegisterRoutes(api, database.DB)
+	availability.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
