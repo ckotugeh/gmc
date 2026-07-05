@@ -16,6 +16,7 @@ import (
 	"doctor-platform/internal/notifications"
 	"doctor-platform/internal/payments"
 	"doctor-platform/internal/posts"
+	"doctor-platform/internal/prescriptions"
 	"doctor-platform/internal/presence"
 	"doctor-platform/internal/profile"
 	"doctor-platform/internal/reactions"
@@ -53,6 +54,8 @@ func main() {
 		&search.Search{},
 		&admin.Admin{},
 		&payments.Payment{},
+		&prescriptions.Prescription{},
+		&prescriptions.PrescriptionItem{},
 	)
 
 	router := gin.Default()
@@ -117,6 +120,7 @@ func main() {
 	search.RegisterRoutes(api, database.DB)
 	admin.RegisterRoutes(api, database.DB)
 	payments.RegisterRoutes(api, database.DB)
+	prescriptions.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
