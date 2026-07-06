@@ -7,6 +7,7 @@ import (
 	"doctor-platform/internal/appointments"
 	"doctor-platform/internal/auth"
 	"doctor-platform/internal/availability"
+	"doctor-platform/internal/clinical_notes"
 	"doctor-platform/internal/comments"
 	"doctor-platform/internal/communities"
 	"doctor-platform/internal/database"
@@ -129,6 +130,7 @@ func main() {
 	availability.RegisterRoutes(api, database.DB)
 	medical_specialties.RegisterRoutes(api, database.DB)
 	doctor_reviews.RegisterRoutes(api, database.DB)
+	clinical_notes.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
