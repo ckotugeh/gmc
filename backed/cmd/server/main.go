@@ -38,13 +38,16 @@ import (
 )
 
 func main() {
+	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
+	// Connect database
 	database.ConnectDB()
 
-	database.DB.AutoMigrate(
+	// Auto migrate all models
+	if err := database.DB.AutoMigrate(
 		&auth.User{},
 		&profile.Profile{},
 		&communities.Community{},
@@ -72,33 +75,58 @@ func main() {
 		&allergies.Allergy{},
 		&lab_requests.LabRequest{},
 		&lab_results.LabResult{},
-	)
+	); err != nil {
+		log.Fatal(err)
+	}
 
 	router := gin.Default()
 
-	// Communities module
-	repo := communities.NewRepository()
-	service := communities.NewService(repo)
-	handler := communities.NewHandler(service)
+	// Trust proxy
+	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
+		log.Fatal(err)
+	}
 
-	//reactions
+	// Root endpoint
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"name":     "Doctor Platform API",
+			"	version": "1.0.0",
+			"status":   "running",
+		})
+	})
+
+	// Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
+	// =========================
+	// Dependency Injection
+	// =========================
+
+	communityRepo := communities.NewRepository()
+	communityService := communities.NewService(communityRepo)
+	communityHandler := communities.NewHandler(communityService)
+
 	reactionRepo := reactions.NewRepository()
 	reactionService := reactions.NewService(reactionRepo)
 	reactionHandler := reactions.NewHandler(reactionService)
 
-	//messaes
 	messageRepo := messages.NewRepository()
 	messageService := messages.NewService(messageRepo)
 	messageHandler := messages.NewHandler(messageService)
 
-	//notification
 	notificationRepo := notifications.NewRepository()
 	notificationService := notifications.NewService(notificationRepo)
 	notificationHandler := notifications.NewHandler(notificationService)
 
+	// WebSocket Hub
 	hub := websockets.NewHub()
 	go hub.Run()
 
+	// API group
 	api := router.Group("/api")
 
 	// Public routes
@@ -110,23 +138,24 @@ func main() {
 	protected.Use(middleware.JWTAuthMiddleware())
 
 	protected.GET("/me", func(c *gin.Context) {
-		userID := c.GetUint("userID")
-		email := c.GetString("email")
-
 		c.JSON(200, gin.H{
-			"user_id": userID,
-			"email":   email,
+			"user_id": c.GetUint("userID"),
+			"email":   c.GetString("email"),
 		})
 	})
 
+	// Protected modules
 	profile.RegisterRoutes(protected)
-	communities.RegisterRoutes(protected, handler)
-	posts.RegisterRoutes(router)
-	comments.RegisterRoutes(router)
+	communities.RegisterRoutes(protected, communityHandler)
+
+	// API modules
+	posts.RegisterRoutes(protected)
+	comments.RegisterRoutes(protected)
 	reactions.RegisterRoutes(api, reactionHandler)
 	messages.RegisterRoutes(api, messageHandler)
 	notifications.RegisterRoutes(api, notificationHandler)
 	websockets.RegisterRoutes(api, hub)
+
 	presence.RegisterRoutes(api, database.DB)
 	appointments.RegisterRoutes(api, database.DB)
 	medicalrecords.RegisterRoutes(api, database.DB)
@@ -146,9 +175,9 @@ func main() {
 	lab_requests.RegisterRoutes(api, database.DB)
 	lab_results.RegisterRoutes(api, database.DB)
 
-	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
+	log.Println("🚀 Doctor Platform API running on http://localhost:8080")
+
+	if err := router.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
-
-	router.Run(":8080")
 }
