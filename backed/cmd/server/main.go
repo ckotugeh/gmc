@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"doctor-platform/internal/admin"
+	"doctor-platform/internal/allergies"
 	"doctor-platform/internal/appointments"
 	"doctor-platform/internal/auth"
 	"doctor-platform/internal/availability"
@@ -136,6 +137,7 @@ func main() {
 	doctor_reviews.RegisterRoutes(api, database.DB)
 	prescriptions.RegisterRoutes(api, database.DB)
 	vitals.RegisterRoutes(api, database.DB)
+	allergies.RegisterRoutes(api, database.DB)
 
 	if err := router.SetTrustedProxies([]string{"127.0.0.1"}); err != nil {
 		log.Fatal(err)
