@@ -1,7 +1,7 @@
 name: GMC CI
 
 on:
-  push:
+  push: 
     branches:
       - main
       - develop
@@ -13,12 +13,12 @@ on:
 
 jobs:
   backend:
-    name: Backend (Go)
+    name: Backed (Go)
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: backend
+        working-directory: backed
 
     steps:
       - name: Checkout Repository
@@ -46,7 +46,7 @@ jobs:
       - name: Run Tests
         run: go test ./...
 
-      - name: Build Backend
+      - name: Build Backed
         run: go build -v ./...
 
   frontend:
