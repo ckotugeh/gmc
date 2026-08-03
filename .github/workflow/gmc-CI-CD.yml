@@ -1,0 +1,151 @@
+name: GMC DevSecOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+
+jobs:
+  # Node 1: Code Quality Check
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Run Go Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61
+          # FIX: Moved inside the "with:" block where the action expects it
+          working-directory: backend 
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Run Frontend Lint & Prettier
+        working-directory: ./frontend 
+        run: |
+          npm ci --prefer-offline
+          npm run lint --if-present
+
+
+  # Node 2: OWASP Top 10 Security Scan
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Govulncheck (Go Security Scan)
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.25'
+          # CHANGE THIS PATH: Point to your backend directory
+          working-directory: ./backend
+      - name: Run npm Audit (Frontend Vulnerabilities)
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+
+  # Node 3: Build Verification
+  build-verify:
+    needs: [code-quality, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Build & Test Go Backend
+        working-directory: ./backend
+        run: |
+          go mod download
+          go test -v ./...
+          go build -o server ./main.go
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      - name: Build & Test Frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run test --if-present
+          npm run build
+
+  # Node 4: Containerization (Skipped for feature/* branches)
+  containerization:
+    needs: build-verify
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine Docker Tag
+        id: meta
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "tag=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/gmc-app:${{ steps.meta.outputs.tag }}
+
+  # Node 5: Notification (Dispatched regardless of success or failure)
+  notification:
+    needs: [code-quality, security-scan, build-verify, containerization]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.EMAIL_WEBHOOK }}
+          SLACK_COLOR: ${{ needs.build-verify.result == 'success' && (github.ref == 'refs/heads/feature/*' || needs.containerization.result == 'success') && 'good' || 'danger' }}
+          SLACK_TITLE: "GMC Pipeline Status - Branch: ${{ github.ref_name }}"
+          SLACK_MESSAGE: |
+            Pipeline Execution Report:
+            - Code Quality Matrix: ${{ needs.code-quality.result }}
+            - OWASP / Dependency Security: ${{ needs.security-scan.result }}
+            - Go & Next.js Compilations: ${{ needs.build-verify.result }}
+            - Multi-stage Containerization: ${{ needs.containerization.result || 'Skipped' }}
