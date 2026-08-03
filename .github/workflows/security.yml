@@ -1,0 +1,86 @@
+name: 2. Security Scan
+
+on:
+  push:
+    branches:
+      - develop
+      - "feature/**"
+
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security:
+    name: OWASP & Security Scan
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+
+      - name: Download Dependencies
+        run: go mod download
+
+      # -----------------------------
+      # Go Vulnerability Scan
+      # -----------------------------
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+      # -----------------------------
+      # Static Security Analysis
+      # -----------------------------
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run gosec
+        run: gosec ./...
+
+      # -----------------------------
+      # Scan repository for secrets
+      # -----------------------------
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+
+      # -----------------------------
+      # Filesystem Vulnerability Scan
+      # -----------------------------
+      - name: Run Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          ignore-unfixed: true
+
+      - name: Security Summary
+        if: success()
+        run: |
+          echo "## 🔒 Security Scan Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scanner | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| govulncheck | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| gosec | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Gitleaks | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy | ✅ |" >> $GITHUB_STEP_SUMMARY

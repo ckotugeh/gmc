@@ -1,0 +1,40 @@
+name: 5. Notifications
+
+on:
+  workflow_run:
+    workflows:
+      - "1. Code Quality"
+      - "2. Security Scan"
+      - "3. Build Verification"
+      - "4. Docker Build & Container Scan"
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Workflow Summary
+        run: |
+          echo "## 📢 CI/CD Notification" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow:** ${{ github.event.workflow_run.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.event.workflow_run.head_branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Conclusion:** ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** ${{ github.event.workflow_run.actor.login }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on Failure
+        if: github.event.workflow_run.conclusion == 'failure'
+        run: |
+          echo "❌ ${{ github.event.workflow_run.name }} failed."
+          echo "Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Triggered by: ${{ github.event.workflow_run.actor.login }}"
+
+      - name: Notify on Success
+        if: github.event.workflow_run.conclusion == 'success'
+        run: |
+          echo "✅ ${{ github.event.workflow_run.name }} completed successfully."
