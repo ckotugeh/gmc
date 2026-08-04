@@ -8,7 +8,7 @@ on:
       - 'feature/*'
 
 jobs:
-  # Node 1: Code Quality Check
+    # Node 1: Code Quality Check
   code-quality:
     runs-on: ubuntu-latest
     steps:
@@ -18,14 +18,14 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          # Automatically pulls Go version 1.25 directly from your go.mod file
           go-version-file: './backend/go.mod'
           cache: true
 
       - name: Run Go Lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61
+          # FIX: Upgraded from v1.59 to latest to support Go 1.25 grammar
+          version: latest
           working-directory: backend 
 
       - name: Setup Node.js
