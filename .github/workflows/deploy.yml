@@ -1,4 +1,4 @@
-name: gmc githubactions Pipeline
+name: gmc github actions Pipeline
 
 on:
   push:
@@ -17,63 +17,69 @@ permissions:
 
 jobs:
   # ==========================================================
-  # Node 1 - Code Quality
-  # ==========================================================
-  code-quality:
-    name: Code Quality
-    runs-on: ubuntu-latest
+# Node 1 - Code Quality
+# ==========================================================
+ code-quality:
+  name: Code Quality
+  runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25.8"
-          cache: true
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.25"
+        cache: true
 
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    - name: Verify Go
+      run: |
+        which go
+        go version
+        go env GOTOOLCHAIN
+
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
           | sh -s -- -b $(go env GOPATH)/bin latest
 
-      - name: Run Go Linter
-        working-directory: backend
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          golangci-lint run ./...
+    - name: Run Go Linter
+      working-directory: backend
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        golangci-lint run ./...
 
-      - name: Detect Frontend
-        id: frontend
-        run: |
-          if [ -f frontend/package.json ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
+    - name: Detect Frontend
+      id: frontend
+      run: |
+        if [ -f frontend/package.json ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
 
-      - name: Setup Node
-        if: steps.frontend.outputs.exists == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+    - name: Setup Node
+      if: steps.frontend.outputs.exists == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Frontend Dependencies
-        if: steps.frontend.outputs.exists == 'true'
-        working-directory: frontend
-        run: npm ci
+    - name: Install Frontend Dependencies
+      if: steps.frontend.outputs.exists == 'true'
+      working-directory: frontend
+      run: npm ci
 
-      - name: Run Frontend Lint
-        if: steps.frontend.outputs.exists == 'true'
-        working-directory: frontend
-        run: npm run lint --if-present
+    - name: Run Frontend Lint
+      if: steps.frontend.outputs.exists == 'true'
+      working-directory: frontend
+      run: npm run lint --if-present
 
   # ==========================================================
   # Node 2 - Security Scan
   # ==========================================================
-  security-scan:
+   security-scan:
     name: OWASP Security Scan
     runs-on: ubuntu-latest
 
@@ -83,7 +89,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25.8"
+          go-version: "1.25"
           cache: true
 
       - name: Install govulncheck
@@ -108,7 +114,7 @@ jobs:
         if: steps.frontend.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
