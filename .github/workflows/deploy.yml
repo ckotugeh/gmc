@@ -1,0 +1,248 @@
+name: gmc github actions Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ==========================================================
+# Node 1 - Code Quality
+# ==========================================================
+ code-quality:
+  name: Code Quality
+  runs-on: ubuntu-latest
+
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.25"
+        cache: true
+
+    - name: Verify Go
+      run: |
+        which go
+        go version
+        go env GOTOOLCHAIN
+
+    - name: Install golangci-lint
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+          | sh -s -- -b $(go env GOPATH)/bin latest
+
+    - name: Run Go Linter
+      working-directory: backend
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        golangci-lint run ./...
+
+    - name: Detect Frontend
+      id: frontend
+      run: |
+        if [ -f frontend/package.json ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Setup Node
+      if: steps.frontend.outputs.exists == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+        cache: npm
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install Frontend Dependencies
+      if: steps.frontend.outputs.exists == 'true'
+      working-directory: frontend
+      run: npm ci
+
+    - name: Run Frontend Lint
+      if: steps.frontend.outputs.exists == 'true'
+      working-directory: frontend
+      run: npm run lint --if-present
+
+  # ==========================================================
+  # Node 2 - Security Scan
+  # ==========================================================
+   security-scan:
+    name: OWASP Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run Go Vulnerability Scan
+        working-directory: backend
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          govulncheck ./...
+
+      - name: Detect Frontend
+        id: frontend
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node
+        if: steps.frontend.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run npm Audit
+        if: steps.frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  # ==========================================================
+  # Node 3 - Build Verification
+  # ==========================================================
+  build-verify:
+    name: Build Verification
+    needs: [code-quality, security-scan]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.8"
+          cache: true
+
+      - name: Build Backend
+        working-directory: backend
+        run: |
+          go mod download
+          go test ./... -v
+          mkdir -p build
+          go build -o build/doctor-platform ./cmd/server
+
+      - name: Detect Frontend
+        id: frontend
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node
+        if: steps.frontend.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Frontend
+        if: steps.frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run test --if-present
+          npm run build
+
+  # ==========================================================
+  # Node 4 - Docker
+  # ==========================================================
+  containerization:
+    name: Containerization
+    needs: build-verify
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Tag
+        id: meta
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          else
+            echo "tag=develop" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/backend:${{ steps.meta.outputs.tag }}
+
+  # ==========================================================
+  # Node 5 - Notification
+  # ==========================================================
+  notification:
+    name: Pipeline Notification
+    needs:
+      - code-quality
+      - security-scan
+      - build-verify
+      - containerization
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine Global Success
+        id: status_check
+        run: |
+          if [[ "${{ needs.code-quality.result }}" == "failure" || "${{ needs.security-scan.result }}" == "failure" || "${{ needs.build-verify.result }}" == "failure" || "${{ needs.containerization.result }}" == "failure" ]]; then
+            echo "color=danger" >> $GITHUB_OUTPUT
+          else
+            echo "color=good" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: ${{ steps.status_check.outputs.color }}
+          SLACK_TITLE: "GMC DevSecOps Pipeline"
+          SLACK_MESSAGE: |
+            Branch: ${{ github.ref_name }}
+
+            Code Quality: ${{ needs.code-quality.result }}
+            Security Scan: ${{ needs.security-scan.result }}
+            Build Verification: ${{ needs.build-verify.result }}
+            Containerization: ${{ needs.containerization.result || 'skipped' }}
