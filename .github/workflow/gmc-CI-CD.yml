@@ -5,161 +5,228 @@ on:
     branches:
       - main
       - develop
-      - 'feature/*'
+      - "feature/**"
+
+  pull_request:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
-    # Node 1: Code Quality Check
+  # ==========================================================
+  # Node 1 - Code Quality
+  # ==========================================================
   code-quality:
+    name: Code Quality
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: './backend/go.mod'
+          go-version-file: backend/go.mod
           cache: true
 
-      - name: Run Go Lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          # FIX: Upgraded from v1.59 to latest to support Go 1.25 grammar
-          version: latest
-          working-directory: backend 
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+          | sh -s -- -b $(go env GOPATH)/bin latest
 
-      - name: Setup Node.js
+      - name: Run Go Linter
+        working-directory: backend
+        run: golangci-lint run ./...
+
+      - name: Detect Frontend
+        id: frontend
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node
+        if: steps.frontend.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Run Frontend Lint & Prettier
-        working-directory: ./frontend 
-        run: |
-          npm ci --prefer-offline
-          npm run lint --if-present
+      - name: Install Frontend Dependencies
+        if: steps.frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm ci
 
-  # Node 2: OWASP Top 10 Security Scan
+      - name: Run Frontend Lint
+        if: steps.frontend.outputs.exists == 'true'
+        working-directory: frontend
+        run: npm run lint --if-present
+
+  # ==========================================================
+  # Node 2 - Security Scan
+  # ==========================================================
   security-scan:
+    name: OWASP Security Scan
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: './backend/go.mod'
+          go-version-file: backend/go.mod
           cache: true
 
-      - name: Install Govulncheck
-        # Resolves error: Works perfectly because the system is now running Go 1.25
+      - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
-      - name: Run Govulncheck (Go Security Scan)
-        working-directory: ./backend 
-        run: govulncheck ./...
+      - name: Run Go Vulnerability Scan
+        working-directory: backend
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          govulncheck ./...
 
-      - name: Setup Node.js
+      - name: Detect Frontend
+        id: frontend
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node
+        if: steps.frontend.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Run npm Audit (Frontend Vulnerabilities)
-        working-directory: ./frontend
+      - name: Run npm Audit
+        if: steps.frontend.outputs.exists == 'true'
+        working-directory: frontend
         run: npm audit --audit-level=high
 
-  # Node 3: Build Verification
+  # ==========================================================
+  # Node 3 - Build Verification
+  # ==========================================================
   build-verify:
+    name: Build Verification
     needs: [code-quality, security-scan]
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: './backend/go.mod'
+          go-version-file: backend/go.mod
           cache: true
 
-      - name: Build & Test Go Backend
-        working-directory: ./backend
+      - name: Build Backend
+        working-directory: backend
         run: |
           go mod download
-          go test -v ./...
-          go build -o server ./main.go
+          go test ./... -v
+          mkdir -p build
+          go build -o build/doctor-platform ./cmd/server
 
-      - name: Setup Node.js
+      - name: Detect Frontend
+        id: frontend
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node
+        if: steps.frontend.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: './frontend/package-lock.json'
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Build & Test Frontend
-        working-directory: ./frontend
+      - name: Build Frontend
+        if: steps.frontend.outputs.exists == 'true'
+        working-directory: frontend
         run: |
           npm ci
           npm run test --if-present
           npm run build
 
-  # Node 4: Containerization (Skipped for feature/* branches)
+  # ==========================================================
+  # Node 4 - Docker
+  # ==========================================================
   containerization:
+    name: Containerization
     needs: build-verify
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Determine Docker Tag
+      - name: Docker Tag
         id: meta
         run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
             echo "tag=latest" >> $GITHUB_OUTPUT
           else
-            echo "tag=dev" >> $GITHUB_OUTPUT
+            echo "tag=develop" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v5
+      - name: Build Backend Image
+        uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./Dockerfile
+          context: backend
+          file: backend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/gmc-app:${{ steps.meta.outputs.tag }}
+          tags: ghcr.io/${{ github.repository }}/backend:${{ steps.meta.outputs.tag }}
 
-  # Node 5: Notification (Dispatched regardless of success or failure)
+  # ==========================================================
+  # Node 5 - Notification
+  # ==========================================================
   notification:
-    needs: [code-quality, security-scan, build-verify, containerization]
+    name: Pipeline Notification
+    needs:
+      - code-quality
+      - security-scan
+      - build-verify
+      - containerization
     if: always()
     runs-on: ubuntu-latest
+
     steps:
-      - name: Send Slack Notification
+      - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_COLOR: ${{ needs.build-verify.result == 'success' && (github.ref == 'refs/heads/feature/*' || needs.containerization.result == 'success') && 'good' || 'danger' }}
-          SLACK_TITLE: "GMC Pipeline Status - Branch: ${{ github.ref_name }}"
+          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_TITLE: "GMC DevSecOps Pipeline"
           SLACK_MESSAGE: |
-            Pipeline Execution Report:
-            - Code Quality Matrix: ${{ needs.code-quality.result }}
-            - OWASP / Dependency Security: ${{ needs.security-scan.result }}
-            - Go & Next.js Compilations: ${{ needs.build-verify.result }}
-            - Multi-stage Containerization: ${{ needs.containerization.result || 'Skipped' }}
+            Branch: ${{ github.ref_name }}
+
+            Code Quality: ${{ needs.code-quality.result }}
+            Security Scan: ${{ needs.security-scan.result }}
+            Build Verification: ${{ needs.build-verify.result }}
+            Containerization: ${{ needs.containerization.result }}
