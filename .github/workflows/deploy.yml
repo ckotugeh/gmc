@@ -1,4 +1,4 @@
-name: GMC DevSecOps Pipeline
+name: gmc githubactions Pipeline
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - main
       - develop
       - "feature/**"
-
   pull_request:
     branches:
       - develop
@@ -28,10 +27,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Go
-  uses: actions/setup-go@v5
-  with:
-    go-version: "1.25.8"
-    cache: true
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.8"
+          cache: true
 
       - name: Install golangci-lint
         run: |
@@ -40,7 +39,9 @@ jobs:
 
       - name: Run Go Linter
         working-directory: backend
-        run: golangci-lint run ./...
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          golangci-lint run ./...
 
       - name: Detect Frontend
         id: frontend
@@ -217,11 +218,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Determine Global Success
+        id: status_check
+        run: |
+          if [[ "${{ needs.code-quality.result }}" == "failure" || "${{ needs.security-scan.result }}" == "failure" || "${{ needs.build-verify.result }}" == "failure" || "${{ needs.containerization.result }}" == "failure" ]]; then
+            echo "color=danger" >> $GITHUB_OUTPUT
+          else
+            echo "color=good" >> $GITHUB_OUTPUT
+          fi
+
       - name: Slack Notification
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_COLOR: ${{ job.status == 'success' && 'good' || 'danger' }}
+          SLACK_COLOR: ${{ steps.status_check.outputs.color }}
           SLACK_TITLE: "GMC DevSecOps Pipeline"
           SLACK_MESSAGE: |
             Branch: ${{ github.ref_name }}
@@ -229,4 +239,4 @@ jobs:
             Code Quality: ${{ needs.code-quality.result }}
             Security Scan: ${{ needs.security-scan.result }}
             Build Verification: ${{ needs.build-verify.result }}
-            Containerization: ${{ needs.containerization.result }}
+            Containerization: ${{ needs.containerization.result || 'skipped' }}
