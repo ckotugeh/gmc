@@ -1,0 +1,114 @@
+name: testing-CI-CD pipeline
+
+on:
+  push:
+    branches:
+      - "develop"
+      - "feature/**"
+  pull_request:
+    branches:
+      - "develop"
+      - "feature/**"
+  workflow_dispatch:
+
+jobs:
+  # NODE 1: Code Quality Validation
+  lint-and-format:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Check code formatting
+        working-directory: ./backed
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "The following files are poorly formatted:"
+            gofmt -l .
+            exit 1
+          fi
+
+  # NODE 2: Active Build Verification (Spins up concurrently or sequentially)
+  compile-binary:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: lint-and-format # Links this node horizontally to Node 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build binary
+        working-directory: ./backed
+        run: go build -v ./...
+
+  # NODE 3: Containerized Database Integration Testing
+  integration-tests:
+    name: Containerized Testing Suite
+    runs-on: ubuntu-latest
+    needs: compile-binary # Links this node horizontally to Node 2
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: doctors_platform_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d doctors_platform_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: 'backed/go.sum'
+
+      - name: Install dependencies
+        working-directory: ./backed
+        run: go mod download
+
+      - name: Run Tests
+        working-directory: ./backed
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: doctor_user
+          DB_PASSWORD: doctor123
+          DB_NAME: doctors_platform_test
+        run: go test -v -race ./...
+
+      - name: Build docker image
+        run: docker build -t doctors-platform:latest .
+
+  # NODE 4: Global Notification Handling Module
+  alert-monitoring:
+    name: Pipeline Monitor Alerts
+    runs-on: ubuntu-latest
+    needs: [lint-and-format, compile-binary, integration-tests] # Listens to all steps
+    if: failure() # Runs only if any node in the left-to-right chain breaks
+    steps:
+      - name: Send Slack Message Alert
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.CHAT_WEBHOOK_URL }}
+          SLACK_COLOR: '#FF0000'
+          SLACK_MESSAGE: "The testing-CI-CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
+          SLACK_TITLE: "Pipeline Build Failure"

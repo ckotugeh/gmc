@@ -7,6 +7,7 @@ import (
 type Repository interface {
 	Create(post *Post) error
 	GetByID(id uint) (*Post, error)
+	GetAll() ([]Post, error)
 	GetByCommunityID(communityID uint) ([]Post, error)
 	Update(post *Post) error
 	Delete(id uint) error
@@ -71,4 +72,23 @@ func (r *repository) Update(post *Post) error {
 // Delete a post
 func (r *repository) Delete(id uint) error {
 	return database.DB.Delete(&Post{}, id).Error
+}
+
+// Get all posts
+func (r *repository) GetAll() ([]Post, error) {
+	var posts []Post
+
+	err := database.DB.
+		Preload("Attachments").
+		Preload("Tags").
+		Preload("Polls").
+		Preload("Polls.Options").
+		Order("created_at DESC").
+		Find(&posts).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }

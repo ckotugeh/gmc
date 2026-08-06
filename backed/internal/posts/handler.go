@@ -54,7 +54,7 @@ func (h *Handler) GetPost(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid post id",
+			"error": "Invalid post id",
 		})
 		return
 	}

@@ -32,4 +32,5 @@ func RegisterRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 		search.GET("/communities", handler.SearchCommunities)
 		search.GET("/posts", handler.SearchPosts)
 	}
+
 }

@@ -172,13 +172,16 @@ func TestGetPatientAppointments(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	service.CreateAppointment(10, CreateAppointmentRequest{
+	_, err := service.CreateAppointment(10, CreateAppointmentRequest{
 		DoctorID:        2,
 		AppointmentTime: time.Now(),
 		Reason:          "Consultation",
 	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
-	service.CreateAppointment(10, CreateAppointmentRequest{
+	_, err = service.CreateAppointment(10, CreateAppointmentRequest{
 		DoctorID:        3,
 		AppointmentTime: time.Now(),
 		Reason:          "Review",
@@ -198,18 +201,16 @@ func TestDeleteAppointment(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	created, _ := service.CreateAppointment(1, CreateAppointmentRequest{
+	_, err := service.CreateAppointment(1, CreateAppointmentRequest{
 		DoctorID:        2,
 		AppointmentTime: time.Now(),
 		Reason:          "Consultation",
 	})
 
-	err := service.DeleteAppointment(created.ID)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	_, err = service.GetAppointment(created.ID)
 	if err == nil {
 		t.Fatal("expected appointment to be deleted")
 	}

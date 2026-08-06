@@ -73,13 +73,16 @@ func TestGetAllMedicalRecords(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	service.Create(CreateMedicalRecordRequest{
+	_, err := service.Create(CreateMedicalRecordRequest{
 		PatientID: 1,
 		DoctorID:  2,
 		Diagnosis: "Asthma",
 	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
-	service.Create(CreateMedicalRecordRequest{
+	_, err = service.Create(CreateMedicalRecordRequest{
 		PatientID: 2,
 		DoctorID:  3,
 		Diagnosis: "Diabetes",
@@ -99,7 +102,7 @@ func TestGetPatientMedicalRecords(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	service.Create(CreateMedicalRecordRequest{
+	_, err := service.Create(CreateMedicalRecordRequest{
 		PatientID: 1,
 		DoctorID:  2,
 		Diagnosis: "Malaria",

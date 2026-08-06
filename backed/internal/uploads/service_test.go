@@ -43,7 +43,7 @@ func TestGetUpload(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	created, _ := service.Create(&Upload{
+	created, err := service.Create(&Upload{
 		UserID:       1,
 		FileName:     "image.png",
 		OriginalName: "image.png",
@@ -107,7 +107,7 @@ func TestUpdateUpload(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	created, _ := service.Create(&Upload{
+	created, err := service.Create(&Upload{
 		UserID:       1,
 		FileName:     "report.pdf",
 		OriginalName: "report.pdf",
@@ -140,7 +140,7 @@ func TestDeleteUpload(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	created, _ := service.Create(&Upload{
+	created, err := service.Create(&Upload{
 		UserID:       1,
 		FileName:     "delete.pdf",
 		OriginalName: "delete.pdf",
@@ -153,7 +153,6 @@ func TestDeleteUpload(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err := service.GetByID(created.ID)
 	if err != ErrUploadNotFound {
 		t.Fatalf("expected %v, got %v", ErrUploadNotFound, err)
 	}

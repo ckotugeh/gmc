@@ -36,6 +36,17 @@ func (m *MockRepository) GetByID(id uint) (*Post, error) {
 	return post, nil
 }
 
+// Get all posts
+func (m *MockRepository) GetAll() ([]Post, error) {
+	var posts []Post
+
+	for _, post := range m.posts {
+		posts = append(posts, *post)
+	}
+
+	return posts, nil
+}
+
 // Get all posts in a community
 func (m *MockRepository) GetByCommunityID(communityID uint) ([]Post, error) {
 

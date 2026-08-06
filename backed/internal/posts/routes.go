@@ -11,7 +11,7 @@ func RegisterRoutes(routes *gin.RouterGroup) {
 	routes.POST("/posts", handler.CreatePost)
 
 	// Get a single post
-	routes.GET("/posts/:id", handler.GetPost)
+	routes.GET("/posts/", handler.GetPost)
 
 	// Get all posts in a community
 	routes.GET("/communities/:id/posts", handler.GetCommunityPosts)

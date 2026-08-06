@@ -9,6 +9,7 @@ import (
 
 type Service interface {
 	CreatePost(req *CreatePostRequest, authorID uint) (*Post, error)
+	GetPosts() ([]Post, error)
 	GetPost(id uint) (*Post, error)
 	GetCommunityPosts(communityID uint) ([]Post, error)
 	UpdatePost(id uint, authorID uint, req *UpdatePostRequest) (*Post, error)
@@ -54,13 +55,10 @@ func (s *service) CreatePost(req *CreatePostRequest, authorID uint) (*Post, erro
 	post := &Post{
 		CommunityID: req.CommunityID,
 		AuthorID:    authorID,
-
 		Title:       title,
 		Content:     content,
 		ContentType: contentType,
-
-		ImageURL: req.ImageURL,
-
+		ImageURL:    req.ImageURL,
 		IsAnonymous: req.IsAnonymous,
 	}
 
@@ -72,7 +70,15 @@ func (s *service) CreatePost(req *CreatePostRequest, authorID uint) (*Post, erro
 }
 
 // ----------------------------------------------------
-// Get Post
+// Get All Posts
+// ----------------------------------------------------
+
+func (s *service) GetPosts() ([]Post, error) {
+	return s.repo.GetAll()
+}
+
+// ----------------------------------------------------
+// Get Single Post
 // ----------------------------------------------------
 
 func (s *service) GetPost(id uint) (*Post, error) {
