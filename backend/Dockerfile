@@ -5,14 +5,15 @@ WORKDIR /app
 
 RUN apk add --no-cache git
 
-# Copy files relative to the root context
-COPY n/go.mod n/go.sum* ./
+# FIX: Ensure the source path explicitly points to your backend folder name
+COPY backend/go.mod backend/go.sum* ./
 RUN go mod download
 
 COPY backend/ ./
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-w -s" -o doctor-platform ./cmd/server
+
 
 # --- Stage 2: Final runtime container execution ---
 FROM alpine:3.21
