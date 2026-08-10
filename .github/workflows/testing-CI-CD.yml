@@ -1,18 +1,18 @@
-name: testing-CI-CD pipeline
+name: backed-CI-CD pipeline
 
 on:
   push:
     branches:
-      - "develop"
+      - "Development"
       - "feature/**"
   pull_request:
     branches:
-      - "develop"
+      - "Development"
       - "feature/**"
   workflow_dispatch:
 
 jobs:
-  # NODE 1: Code Quality Validation
+  # 🟢 NODE 1: Code Quality Validation
   lint-and-format:
     name: Code Quality Check
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
             exit 1
           fi
 
-  # NODE 2: Active Build Verification (Spins up concurrently or sequentially)
+  # 🔵 NODE 2: Active Build Verification (Spins up concurrently or sequentially)
   compile-binary:
     name: Build Verification
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
         working-directory: ./backed
         run: go build -v ./...
 
-  # NODE 3: Containerized Database Integration Testing
+  # 🗄️ NODE 3: Containerized Database Integration Testing
   integration-tests:
     name: Containerized Testing Suite
     runs-on: ubuntu-latest
@@ -62,12 +62,12 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_USER: user
-          POSTGRES_PASSWORD: password123
-          POSTGRES_DB: doctors_platform_test
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: doctor_platform
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U user -d doctors_platform_test"
+          --health-cmd "pg_isready -U user -d doctor_platform"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -90,15 +90,15 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER: doctor_user
-          DB_PASSWORD: doctor123
-          DB_NAME: doctors_platform_test
+          DB_USER: user
+          DB_PASSWORD: password123
+          DB_NAME: doctor_platform
         run: go test -v -race ./...
 
       - name: Build docker image
-        run: docker build -t doctors-platform:latest .
+        run: docker build -t doctor_platform:latest .
 
-  # NODE 4: Global Notification Handling Module
+  # 🚨 NODE 4: Global Notification Handling Module
   alert-monitoring:
     name: Pipeline Monitor Alerts
     runs-on: ubuntu-latest
@@ -110,5 +110,5 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.CHAT_WEBHOOK_URL }}
           SLACK_COLOR: '#FF0000'
-          SLACK_MESSAGE: "The testing-CI-CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
+          SLACK_MESSAGE: "❌ The backed-CI-CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
           SLACK_TITLE: "Pipeline Build Failure"
