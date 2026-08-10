@@ -1,4 +1,4 @@
-name: backed-CI-CD pipeline
+name: backend-CI-CD pipeline
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
           go-version: '1.22'
 
       - name: Check code formatting
-        working-directory: ./backed
+        working-directory: ./backend
         run: |
           if [ -n "$(gofmt -l .)" ]; then
             echo "The following files are poorly formatted:"
@@ -49,7 +49,7 @@ jobs:
           go-version: '1.22'
 
       - name: Build binary
-        working-directory: ./backed
+        working-directory: ./backend
         run: go build -v ./...
 
   # 🗄️ NODE 3: Containerized Database Integration Testing
@@ -79,14 +79,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache-dependency-path: 'backed/go.sum'
+          cache-dependency-path: 'backend/go.sum'
 
       - name: Install dependencies
-        working-directory: ./backed
+        working-directory: ./backend
         run: go mod download
 
       - name: Run Tests
-        working-directory: ./backed
+        working-directory: ./backend
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -110,5 +110,5 @@ jobs:
         env:
           SLACK_WEBHOOK: ${{ secrets.CHAT_WEBHOOK_URL }}
           SLACK_COLOR: '#FF0000'
-          SLACK_MESSAGE: "❌ The backed-CI-CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
+          SLACK_MESSAGE: "❌ The backend-CI-CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
           SLACK_TITLE: "Pipeline Build Failure"

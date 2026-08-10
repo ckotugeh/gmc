@@ -13,12 +13,12 @@ on:
 
 jobs:
   backend:
-    name: Backed (Go)
+    name: n (Go)
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: backed
+        working-directory: n
 
     steps:
       - name: Checkout Repository
@@ -46,7 +46,7 @@ jobs:
       - name: Run Tests
         run: go test ./...
 
-      - name: Build Backed
+      - name: Build Backend
         run: go build -v ./...
 
   frontend:
