@@ -1,45 +1,36 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15-alpine
-    container_name: postgres_db
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=your_secure_password # Update to match your credentials
-      - POSTGRES_DB=doctor_platform
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - platform_network
+  image: postgres:15-alpine
+  container_name: postgres_db
+  environment:
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: doctor123
+    POSTGRES_DB: doctor_platform
+  volumes:
+    - pgdata:/var/lib/postgresql/data
 
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      network: host
     container_name: doctor_backend
-    restart: always
+    restart: unless-stopped
     depends_on:
       - postgres
     ports:
       - "8080:8080"
     environment:
-      # CRITICAL: The host matching parameter must match the database service name precisely
-      - DB_HOST=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=your_secure_password
-      - DB_NAME=doctor_platform
-      - DB_PORT=5432
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: doctor123
+      DB_NAME: doctor_platform
+      DB_SSLMODE: disable
+      JWT_SECRET: supersecretkey
+      PORT: 8080
     volumes:
       - ./backend/uploads:/app/uploads
-    networks:
-      - platform_network
-
-networks:
-  platform_network:
-    driver: bridge
 
 volumes:
   pgdata:
