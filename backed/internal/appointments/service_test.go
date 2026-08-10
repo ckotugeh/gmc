@@ -201,17 +201,24 @@ func TestDeleteAppointment(t *testing.T) {
 	repo := NewMockRepository()
 	service := NewService(repo)
 
-	_, err := service.CreateAppointment(1, CreateAppointmentRequest{
+	// 1. Capture the created appointment object to get its real ID
+	created, err := service.CreateAppointment(1, CreateAppointmentRequest{
 		DoctorID:        2,
 		AppointmentTime: time.Now(),
 		Reason:          "Consultation",
 	})
-
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("expected no creation error, got %v", err)
 	}
 
+	// 2. Execute the actual deletion operation
+	if err := service.DeleteAppointment(created.ID); err != nil {
+		t.Fatalf("expected no error during deletion, got %v", err)
+	}
+
+	// 3. Query the record again to verify it is gone
+	_, err = service.GetAppointment(created.ID)
 	if err == nil {
-		t.Fatal("expected appointment to be deleted")
+		t.Fatal("expected appointment to be deleted, but it was found")
 	}
 }
