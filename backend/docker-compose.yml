@@ -1,48 +1,45 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:17
-    container_name: doctor-platform-db
-    restart: unless-stopped
-
+    image: postgres:15-alpine
+    container_name: postgres_db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: doctor_platform
-
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your_secure_password # Update to match your credentials
+      - POSTGRES_DB=doctor_platform
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - platform_network
 
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d doctor_platform"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  api:
+  backend:
     build:
       context: .
-      dockerfile: Dockerfile
-
-    container_name: doctor-platform-api
-    restart: unless-stopped
-
+      dockerfile: backend/Dockerfile
+    container_name: doctor_backend
+    restart: always
     depends_on:
-      postgres:
-        condition: service_healthy
-
-    env_file:
-      - .env
-
-    environment:
-      DB_HOST: postgres
-      DB_PORT: "5432"
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: doctor_platform
-      DB_SSLMODE: disable
-
+      - postgres
     ports:
       - "8080:8080"
+    environment:
+      # CRITICAL: The host matching parameter must match the database service name precisely
+      - DB_HOST=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=your_secure_password
+      - DB_NAME=doctor_platform
+      - DB_PORT=5432
+    volumes:
+      - ./backend/uploads:/app/uploads
+    networks:
+      - platform_network
+
+networks:
+  platform_network:
+    driver: bridge
 
 volumes:
-  postgres_data:
+  pgdata:
