@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: doctor123
+      POSTGRES_DB: doctor_platform
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      network: host
+    container_name: doctor_backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: doctor123
+      DB_NAME: doctor_platform
+      DB_SSLMODE: disable
+      JWT_SECRET: supersecretkey
+      PORT: 8080
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+volumes:
+  pgdata:

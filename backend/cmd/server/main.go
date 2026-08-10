@@ -41,9 +41,8 @@ import (
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
-	}
-
+    log.Printf("No .env file found; using environment variables")
+}
 	// Connect database
 	database.ConnectDB()
 
@@ -199,7 +198,7 @@ func main() {
 	lab_requests.RegisterRoutes(api, database.DB)
 	lab_results.RegisterRoutes(api, database.DB)
 
-	log.Println("🚀 Doctor Platform API running on http://localhost:8080")
+	log.Println("Doctor Platform API running on http://localhost:8080")
 
 	if err := router.Run(":8080"); err != nil {
 		log.Fatal(err)
