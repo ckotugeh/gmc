@@ -148,11 +148,17 @@ func TestDeleteUpload(t *testing.T) {
 		FileSize:     100,
 		FilePath:     "/uploads/delete.pdf",
 	})
-
-	if err := service.Delete(created.ID); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err != nil {
+		t.Fatalf("unexpected setup error: %v", err)
 	}
 
+	// 1. Perform deletion step
+	if err := service.Delete(created.ID); err != nil {
+		t.Fatalf("unexpected error during deletion: %v", err)
+	}
+
+	// 2. Query the record again to verify it returns ErrUploadNotFound
+	_, err = service.GetByID(created.ID)
 	if err != ErrUploadNotFound {
 		t.Fatalf("expected %v, got %v", ErrUploadNotFound, err)
 	}
