@@ -41,8 +41,8 @@ import (
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-    log.Printf("No .env file found; using environment variables")
-}
+		log.Printf("No .env file found; using environment variables")
+	}
 	// Connect database
 	database.ConnectDB()
 
