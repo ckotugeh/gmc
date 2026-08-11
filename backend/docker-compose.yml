@@ -1,14 +1,7 @@
+# This app connects only to Supabase (see internal/database/database.go),
+# so there is no local Postgres service here — just the backend container,
+# pointed at your Supabase project via DATABASE_URL.
 services:
-  postgres:
-  image: postgres:15-alpine
-  container_name: postgres_db
-  environment:
-    POSTGRES_USER: postgres
-    POSTGRES_PASSWORD: doctor123
-    POSTGRES_DB: doctor_platform
-  volumes:
-    - pgdata:/var/lib/postgresql/data
-
   backend:
     build:
       context: .
@@ -16,21 +9,15 @@ services:
       network: host
     container_name: doctor_backend
     restart: unless-stopped
-    depends_on:
-      - postgres
     ports:
       - "8080:8080"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: doctor123
-      DB_NAME: doctor_platform
-      DB_SSLMODE: disable
-      JWT_SECRET: supersecretkey
+      DATABASE_URL: ${DATABASE_URL}
+      DB_USE_POOLER: ${DB_USE_POOLER:-false}
+      SKIP_AUTO_MIGRATE: ${SKIP_AUTO_MIGRATE:-true}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      JWT_SECRET: ${JWT_SECRET}
       PORT: 8080
     volumes:
       - ./backend/uploads:/app/uploads
-
-volumes:
-  pgdata:

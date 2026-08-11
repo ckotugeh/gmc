@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"doctor-platform/internal/admin"
 	"doctor-platform/internal/allergies"
@@ -46,8 +47,13 @@ func main() {
 	// Connect database
 	database.ConnectDB()
 
-	// Auto migrate all models
-	if err := database.DB.AutoMigrate(
+	// Auto migrate all models.
+	// Skip this once the SQL migrations in supabase/migrations/ have been
+	// applied to your Supabase project, so schema is controlled from one
+	// place (set SKIP_AUTO_MIGRATE=true in that case).
+	if os.Getenv("SKIP_AUTO_MIGRATE") == "true" {
+		log.Println("SKIP_AUTO_MIGRATE=true, skipping AutoMigrate")
+	} else if err := database.DB.AutoMigrate(
 		&auth.User{},
 		&profile.Profile{},
 		&communities.Community{},
