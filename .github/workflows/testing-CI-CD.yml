@@ -1,62 +1,85 @@
-name: backend-CI-CD pipeline
+name: GMC CI/CD pipeline
 
 on:
-  push:
+  push: 
     branches:
-      - "Development"
-      - "feature/**"
+      - main
+      - develop
+      - feature/**
   pull_request:
     branches:
-      - "Development"
-      - "feature/**"
-  workflow_dispatch:
+      - main
+      - develop
 
 jobs:
-  # 🟢 NODE 1: Code Quality Validation
-  lint-and-format:
-    name: Code Quality Check
+  # NODE 1A: Backend Quality Checking
+  backend:
+    name: Backend (Go)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Go Environment
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: "1.25"
 
-      - name: Check code formatting
-        working-directory: ./backend
+      - name: Download Dependencies
+        run: go mod download
+
+      - name: Verify Formatting
         run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "The following files are poorly formatted:"
+          if [ "$(gofmt -l .)" ]; then
+            echo "Files need formatting"
             gofmt -l .
             exit 1
           fi
 
-  # 🔵 NODE 2: Active Build Verification (Spins up concurrently or sequentially)
-  compile-binary:
-    name: Build Verification
-    runs-on: ubuntu-latest
-    needs: lint-and-format # Links this node horizontally to Node 1
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Go Vet
+        run: go vet ./...
 
-      - name: Setup Go Environment
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
+      - name: Run Tests
+        run: go test ./...
 
-      - name: Build binary
-        working-directory: ./backend
+      - name: Build Backend
         run: go build -v ./...
 
-  # 🗄️ NODE 3: Containerized Database Integration Testing
+  # NODE 1B: Frontend Quality Checking (Runs in parallel with Backend)
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+  # NODE 2: Containerized Database Integration Testing & Docker Build
   integration-tests:
     name: Containerized Testing Suite
     runs-on: ubuntu-latest
-    needs: compile-binary # Links this node horizontally to Node 2
+    needs: [backend, frontend] # Waits for BOTH linting steps to pass
     services:
       postgres:
         image: postgres:15-alpine
@@ -78,7 +101,7 @@ jobs:
       - name: Setup Go Environment
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
           cache-dependency-path: 'backend/go.sum'
 
       - name: Install dependencies
@@ -96,19 +119,19 @@ jobs:
         run: go test -v -race ./...
 
       - name: Build docker image
-        run: docker build -t doctor_platform:latest .
+        run: docker build -f backend/Dockerfile -t doctor_platform:latest .
 
-  # 🚨 NODE 4: Global Notification Handling Module
+  # NODE 3: Global Notification Handling Module
   alert-monitoring:
     name: Pipeline Monitor Alerts
     runs-on: ubuntu-latest
-    needs: [lint-and-format, compile-binary, integration-tests] # Listens to all steps
-    if: failure() # Runs only if any node in the left-to-right chain breaks
+    needs: [backend, frontend, integration-tests] # Monitors all active pipeline jobs
+    if: failure() # Fires only if any of the above jobs fail
     steps:
       - name: Send Slack Message Alert
         uses: rtCamp/action-slack-notify@v2
         env:
           SLACK_WEBHOOK: ${{ secrets.CHAT_WEBHOOK_URL }}
           SLACK_COLOR: '#FF0000'
-          SLACK_MESSAGE: "❌ The backend-CI-CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
+          SLACK_MESSAGE: "The GMC CI/CD pipeline failed! Broken by @${{ github.actor }} on branch ${{ github.ref_name }}"
           SLACK_TITLE: "Pipeline Build Failure"
