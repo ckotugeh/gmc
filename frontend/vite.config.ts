@@ -8,7 +8,7 @@ export default defineConfig({
   // Replace REPO_NAME below with your actual GitHub repository name
   // (skip this / leave it as '/' only if this deploys to a user/org page
   // at the domain root, e.g. <user>.github.io).
-  base: '/REPO_NAME/',
+  base: '/gmc/',
   plugins: [
     react(),
     tailwindcss(),
