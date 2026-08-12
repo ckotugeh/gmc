@@ -48,11 +48,19 @@ func main() {
 	database.ConnectDB()
 
 	// Auto migrate all models.
-	// Skip this once the SQL migrations in supabase/migrations/ have been
-	// applied to your Supabase project, so schema is controlled from one
-	// place (set SKIP_AUTO_MIGRATE=true in that case).
-	if os.Getenv("SKIP_AUTO_MIGRATE") == "true" {
-		log.Println("SKIP_AUTO_MIGRATE=true, skipping AutoMigrate")
+	//
+	// Schema is managed by the SQL migrations in supabase/migrations/, which
+	// have already been applied to the Supabase project. GORM's AutoMigrate
+	// uses its own naming convention for constraints/indexes (e.g.
+	// "uni_profiles_user_id") which does not match names created by raw SQL
+	// (e.g. "profiles_user_id_key"), causing AutoMigrate to fail trying to
+	// reconcile constraints that don't exist under the name it expects.
+	//
+	// AutoMigrate is therefore skipped by default. Set RUN_AUTO_MIGRATE=true
+	// only if you intentionally want GORM to manage/create schema (e.g. for
+	// a fresh local/dev database with no SQL migrations applied yet).
+	if os.Getenv("RUN_AUTO_MIGRATE") != "true" {
+		log.Println("Skipping AutoMigrate (schema managed by supabase/migrations/); set RUN_AUTO_MIGRATE=true to override")
 	} else if err := database.DB.AutoMigrate(
 		&auth.User{},
 		&profile.Profile{},
