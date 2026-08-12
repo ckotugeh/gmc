@@ -88,8 +88,13 @@ func main() {
 
 	router := gin.Default()
 
-	// Build allowed origins from env (comma-separated) + always allow localhost for dev
-	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+	// Build allowed origins — localhost for dev, Render domain for production,
+	// plus anything extra supplied via ALLOWED_ORIGINS env var.
+	allowedOrigins := []string{
+		"http://localhost:5173",
+		"http://localhost:3000",
+		"https://doctor-platform-frontend.onrender.com",
+	}
 	if raw := os.Getenv("ALLOWED_ORIGINS"); raw != "" {
 		for _, o := range strings.Split(raw, ",") {
 			o = strings.TrimSpace(o)
