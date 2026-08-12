@@ -137,7 +137,8 @@ jobs:
         run: go test -v -race ./...
 
       - name: Build docker image
-        run: docker build -f backend/Dockerfile -t doctor_platform:latest .
+        working-directory: ./backend
+        run: docker build -t doctor_platform:latest .
 
   # NODE 4: Global Notification Handling Module
   alert-monitoring:
