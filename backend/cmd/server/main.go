@@ -3,10 +3,7 @@ package main
 import (
 	"log"
 	"os"
-<<<<<<< HEAD
 	"strings"
-=======
->>>>>>> 4c08c7703968dc4cb4b34bda8d930a61b4f68052
 
 	"doctor-platform/internal/admin"
 	"doctor-platform/internal/allergies"
