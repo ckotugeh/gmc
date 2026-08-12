@@ -1,0 +1,83 @@
+# Render Blueprint — Doctor Platform (Free Tier)
+# Docs: https://render.com/docs/blueprint-spec
+#
+# FREE TIER LIMITS:
+#  - Web services spin down after 15 min inactivity (~50s cold start)
+#  - PostgreSQL free plan expires after 90 days
+#  - Static sites are always free with no limits
+
+services:
+  # ─── Backend API (Go + Gin) ───────────────────────────────────────────────
+  - type: web
+    name: doctor-platform-api
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: GIN_MODE
+        value: release
+      - key: DB_HOST
+        fromDatabase:
+          name: doctor-platform-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: doctor-platform-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: doctor-platform-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: doctor-platform-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: doctor-platform-db
+          property: database
+      - key: DB_SSLMODE
+        value: require
+      - key: JWT_SECRET
+        generateValue: true
+      # After first deploy: paste the frontend URL here, e.g.:
+      # https://doctor-platform-frontend.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: ""
+
+  # ─── Frontend (React + Vite → Static Site) ────────────────────────────────
+  - type: web
+    name: doctor-platform-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      # SPA fallback — all paths serve index.html for client-side routing
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # !! After backend deploys, update this to your backend URL:
+      # https://doctor-platform-api.onrender.com/api
+      - key: VITE_API_URL
+        value: https://doctor-platform-api.onrender.com/api
+
+# ─── PostgreSQL Database ──────────────────────────────────────────────────────
+databases:
+  - name: doctor-platform-db
+    plan: free
+    databaseName: doctor_platform
+    user: doctor_platform_user

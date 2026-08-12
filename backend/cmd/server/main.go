@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 
 	"doctor-platform/internal/admin"
 	"doctor-platform/internal/allergies"
@@ -81,10 +83,19 @@ func main() {
 
 	router := gin.Default()
 
+	// Build allowed origins from env (comma-separated) + always allow localhost for dev
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
+	if raw := os.Getenv("ALLOWED_ORIGINS"); raw != "" {
+		for _, o := range strings.Split(raw, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				allowedOrigins = append(allowedOrigins, o)
+			}
+		}
+	}
+
 	router.Use(cors.New(cors.Config{
-		AllowOrigins: []string{
-			"http://localhost:5173",
-		},
+		AllowOrigins: allowedOrigins,
 		AllowMethods: []string{
 			"GET",
 			"POST",
@@ -198,9 +209,14 @@ func main() {
 	lab_requests.RegisterRoutes(api, database.DB)
 	lab_results.RegisterRoutes(api, database.DB)
 
-	log.Println("Doctor Platform API running on http://localhost:8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-	if err := router.Run(":8080"); err != nil {
+	log.Printf("🚀 Doctor Platform API running on :%s", port)
+
+	if err := router.Run(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }
