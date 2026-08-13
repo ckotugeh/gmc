@@ -134,9 +134,9 @@ func main() {
 	// Root endpoint
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"name":     "Doctor Platform API",
-			"	version": "1.0.0",
-			"status":   "running",
+			"name":    "Doctor Platform API",
+			"version": "1.0.0",
+			"status":  "running",
 		})
 	})
 
