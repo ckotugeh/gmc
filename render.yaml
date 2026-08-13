@@ -70,10 +70,8 @@ services:
         source: /*
         destination: /index.html
     envVars:
-      # !! After backend deploys, update this to your backend URL:
-      # https://doctor-platform-api.onrender.com/api
       - key: VITE_API_URL
-        value: https://doctor-platform-api.onrender.com/api
+        value: https://global-medical-collaboration-backend.onrender.com/api
 
 # ─── PostgreSQL Database ──────────────────────────────────────────────────────
 databases:

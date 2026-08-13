@@ -94,6 +94,7 @@ func main() {
 		"http://localhost:5173",
 		"http://localhost:3000",
 		"https://doctor-platform-frontend.onrender.com",
+		"https://global-medical-collaboration-frontend.onrender.com",
 	}
 	if raw := os.Getenv("ALLOWED_ORIGINS"); raw != "" {
 		for _, o := range strings.Split(raw, ",") {
