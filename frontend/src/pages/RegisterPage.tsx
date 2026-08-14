@@ -24,7 +24,7 @@ export default function RegisterPage() {
         password,
       })
       login(data.token)
-      navigate('/dashboard')
+      navigate('/login')
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data
