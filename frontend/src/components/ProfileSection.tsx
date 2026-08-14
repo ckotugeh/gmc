@@ -19,7 +19,7 @@ export default function ProfileSection() {
 
   useEffect(() => {
     api
-      .get<User>('/profile')
+      .get<User>('/me')
       .then((res) => {
         setProfile(res.data)
       })

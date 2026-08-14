@@ -183,10 +183,13 @@ func main() {
 	protected.Use(middleware.JWTAuthMiddleware())
 
 	protected.GET("/me", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"user_id": c.GetUint("userID"),
-			"email":   c.GetString("email"),
-		})
+		userID := c.GetUint("userID")
+		var user auth.User
+		if err := database.DB.First(&user, userID).Error; err != nil {
+			c.JSON(404, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(200, user)
 	})
 
 	// Protected modules
