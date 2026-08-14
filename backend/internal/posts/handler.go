@@ -29,6 +29,9 @@ func (h *Handler) GetPosts(c *gin.Context) {
 		})
 		return
 	}
+	if posts == nil {
+		posts = []Post{}
+	}
 	c.JSON(http.StatusOK, posts)
 }
 

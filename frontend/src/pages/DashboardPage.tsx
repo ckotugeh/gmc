@@ -18,7 +18,7 @@ export default function DashboardPage() {
   useEffect(() => {
     api
       .get<Post[]>('/posts')
-      .then((res) => setPosts(res.data))
+      .then((res) => setPosts(Array.isArray(res.data) ? res.data : []))
       .catch((err) => {
         if (err.response?.status === 401) {
           logout()

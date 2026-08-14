@@ -87,7 +87,11 @@ func (r *repository) GetAll() ([]Post, error) {
 		Find(&posts).Error
 
 	if err != nil {
-		return nil, err
+		return []Post{}, err
+	}
+
+	if posts == nil {
+		return []Post{}, nil
 	}
 
 	return posts, nil
