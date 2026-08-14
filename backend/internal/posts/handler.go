@@ -18,6 +18,21 @@ func NewHandler(service Service) *Handler {
 }
 
 // ----------------------------------------------------
+// GET /api/posts
+// ----------------------------------------------------
+
+func (h *Handler) GetPosts(c *gin.Context) {
+	posts, err := h.service.GetPosts()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, posts)
+}
+
+// ----------------------------------------------------
 // POST /api/posts
 // ----------------------------------------------------
 

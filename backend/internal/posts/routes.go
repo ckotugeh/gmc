@@ -7,11 +7,14 @@ func RegisterRoutes(routes *gin.RouterGroup) {
 	service := NewService(repo)
 	handler := NewHandler(service)
 
+	// List all posts
+	routes.GET("/posts", handler.GetPosts)
+
 	// Create a post
 	routes.POST("/posts", handler.CreatePost)
 
 	// Get a single post
-	routes.GET("/posts/", handler.GetPost)
+	routes.GET("/posts/:id", handler.GetPost)
 
 	// Get all posts in a community
 	routes.GET("/communities/:id/posts", handler.GetCommunityPosts)
