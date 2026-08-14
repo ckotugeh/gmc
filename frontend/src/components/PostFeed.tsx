@@ -24,6 +24,8 @@ function truncate(text: string, max: number): string {
 export default function PostFeed({ posts, loading, error }: Props) {
   const [expandedPostId, setExpandedPostId] = useState<number | null>(null)
 
+  const safePosts = Array.isArray(posts) ? posts : []
+
   const handlePostClick = (id: number) => {
     setExpandedPostId((prev) => (prev === id ? null : id))
   }
@@ -50,7 +52,7 @@ export default function PostFeed({ posts, loading, error }: Props) {
     )
   }
 
-  if (posts.length === 0) {
+  if (safePosts.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <p className="text-sm text-gray-400 text-center py-6">No posts yet.</p>
@@ -60,7 +62,7 @@ export default function PostFeed({ posts, loading, error }: Props) {
 
   return (
     <div className="space-y-3">
-      {posts.map((post) => {
+      {safePosts.map((post) => {
         const isExpanded = expandedPostId === post.id
         return (
           <div

@@ -29,7 +29,7 @@ export default function CommentSection({ postId }: Props) {
     setError(null)
     api
       .get<Comment[]>(`/posts/${postId}/comments`)
-      .then((res) => setComments(res.data))
+      .then((res) => setComments(Array.isArray(res.data) ? res.data : []))
       .catch(() => setError('Could not load comments.'))
       .finally(() => setLoading(false))
   }, [postId])
