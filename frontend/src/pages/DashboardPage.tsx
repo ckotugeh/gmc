@@ -16,20 +16,22 @@ export default function DashboardPage() {
   const [postsError, setPostsError] = useState<string | null>(null)
 
   useEffect(() => {
-    api
-      .get<Post[]>('/posts')
-      .then((res) => setPosts(Array.isArray(res.data) ? res.data : []))
-      .catch((err) => {
-        if (err.response?.status === 401) {
-          logout()
-          navigate('/login')
-        } else {
-          setPostsError('Could not load posts.')
-        }
-      })
-      .finally(() => setPostsLoading(false))
-  }, [logout, navigate])
-
+  api
+    .get<Post[]>('/posts')
+    .then((res) => {
+      console.log('POSTS API RESPONSE:', res.data)
+      setPosts(Array.isArray(res.data) ? res.data : [])
+    })
+    .catch((err) => {
+      if (err.response?.status === 401) {
+        logout()
+        navigate('/login')
+      } else {
+        setPostsError('Could not load posts.')
+      }
+    })
+    .finally(() => setPostsLoading(false))
+}, [logout, navigate])
   const handleLogout = () => {
     logout()
     navigate('/login')
